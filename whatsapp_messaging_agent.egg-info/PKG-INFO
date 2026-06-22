@@ -1,0 +1,105 @@
+Metadata-Version: 2.4
+Name: whatsapp-messaging-agent
+Version: 0.3.0
+Summary: WhatsApp Messaging Agent with Playwright automation, message analysis, PDF reports, and email.
+Author-email: Muhammad Qasim Shabbir <muhammadqasimshabbir3@gmail.com>
+License: MIT
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: langgraph>=1.0.0
+Requires-Dist: python-dotenv>=1.0.1
+Requires-Dist: langchain>=0.1.0
+Requires-Dist: langchain-groq>=0.1.0
+Requires-Dist: langchain-community>=0.1.0
+Requires-Dist: requests>=2.31.0
+Requires-Dist: reportlab>=4.0.0
+Requires-Dist: beautifulsoup4>=4.12.0
+Requires-Dist: playwright>=1.40.0
+Provides-Extra: dev
+Requires-Dist: mypy>=1.11.1; extra == "dev"
+Requires-Dist: ruff>=0.6.1; extra == "dev"
+Requires-Dist: langgraph-cli[inmem]>=0.4.14; extra == "dev"
+Requires-Dist: pre-commit; extra == "dev"
+Dynamic: license-file
+
+# WhatsApp Messaging Agent
+
+**A LangGraph agent that scans your WhatsApp Web inbox, reads unread conversations, generates contextual AI replies, sends them, and emails an HTML report.**
+
+The agent signs into **Gmail** with `EMAIL` and `PASSWORD` from `.env`. During inbox scan it opens [web.whatsapp.com](https://web.whatsapp.com/) and processes **unread** chats only — contacts with unread messages get extracted conversation context, Groq AI analysis, replies through WhatsApp Web, screenshots after each send, and an HTML report with the message/reply log.
+
+## Quick start
+
+```bash
+./setup.sh
+cp .env.example .env
+# Edit .env: GROQ_API_KEY, EMAIL, PASSWORD, optional Gmail SMTP for email reports
+./start.sh both
+```
+
+Open **http://localhost:5173** and click **Start Agent**.
+
+### First-time browser login
+
+Set in `.env`:
+
+```env
+EMAIL=your.email@gmail.com
+PASSWORD=your_gmail_password
+BROWSER_HEADLESS=false
+```
+
+Run the agent once. Playwright signs into Gmail (login step). WhatsApp Web opens during inbox scan — scan QR if prompted. The session is saved to `./data/whatsapp_session.json` for reuse.
+
+## Workflow
+
+```
+Gmail login (EMAIL/PASSWORD) → WhatsApp Web (inbox scan) → Unread chats only → Extract conversations
+  → Analyze sentiment → Select reply targets → Generate contextual AI replies
+  → Send on WhatsApp + screenshot → HTML report → PDF (optional) → Email
+```
+
+## Environment variables
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `GROQ_API_KEY` | — | **Required** — LLM for analysis and replies |
+| `EMAIL` | — | **Required** — Gmail address for browser login |
+| `PASSWORD` | — | **Required** — Gmail password for browser login |
+| `WHATSAPP_SESSION_PATH` | `./data/whatsapp_session.json` | Saved browser session |
+| `MAX_CHATS_TO_PROCESS` | `5` | Max unread chats to open per run |
+| `MAX_MESSAGES_PER_CHAT` | `20` | Recent inbound messages per chat |
+| `MAX_REPLIES_PER_RUN` | `5` | Max AI replies per run |
+| `REPLY_ONLY_UNREAD_CHATS` | `true` | Reply only to chats with unread messages |
+| `CONTACT_FILTER` | — | Optional name filter (partial match) |
+| `ENABLE_MESSAGE_REPLIES` | `false` | Send replies via WhatsApp Web |
+| `BROWSER_HEADLESS` | `true` | Set `false` for QR login |
+| `KEEP_BROWSER_OPEN` | `true` | Reuse browser from login through send |
+
+See `.env.example` for the full list.
+
+## Project structure
+
+```
+src/agent/
+  graph.py              # LangGraph workflow
+  config.py             # Environment config
+  workflow_executor.py  # Step handlers
+  custom_tools/
+    browser_tools.py    # WhatsApp Web session
+    whatsapp_tools.py   # Inbox scan, read, send, screenshots
+frontend/               # React agent dashboard
+```
+
+## Run commands
+
+| Command | Description |
+|---------|-------------|
+| `./start.sh both` | LangGraph server + React UI |
+| `./start.sh server` | LangGraph API only |
+| `./start.sh ui` | Frontend only |
+
+## License
+
+MIT

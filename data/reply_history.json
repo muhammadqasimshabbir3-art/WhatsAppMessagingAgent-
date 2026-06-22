@@ -1,0 +1,62 @@
+[
+  {
+    "recorded_at": "2026-06-19T17:00:11.670820+00:00",
+    "contact_name": "Alice",
+    "message_id": "msg_1",
+    "message_author": "Alice",
+    "message_text": "Hello!",
+    "message_category": "positive",
+    "reply_text": "Hi there!",
+    "engagement_priority": "medium",
+    "sentiment_score": 0.9,
+    "status": "generated",
+    "posted": false,
+    "post_error": "",
+    "screenshot_path": ""
+  },
+  {
+    "recorded_at": "2026-06-19T17:00:26.620489+00:00",
+    "contact_name": "Alice",
+    "message_id": "msg_1",
+    "message_author": "Alice",
+    "message_text": "Hello!",
+    "message_category": "positive",
+    "reply_text": "Hi there!",
+    "engagement_priority": "medium",
+    "sentiment_score": 0.9,
+    "status": "generated",
+    "posted": false,
+    "post_error": "",
+    "screenshot_path": ""
+  },
+  {
+    "recorded_at": "2026-06-22T14:16:02.013785+00:00",
+    "contact_name": "Asim Bhai",
+    "message_id": "msg_10",
+    "message_author": "MuhammadQasimShabbir",
+    "message_text": "theek hy bro, thanks you very much you are very good person kind one also",
+    "message_category": "positive",
+    "reply_text": "Kya sadam ne aapko paise diye?",
+    "engagement_priority": "high",
+    "sentiment_score": 0.9,
+    "status": "generated",
+    "posted": false,
+    "post_error": "",
+    "screenshot_path": ""
+  },
+  {
+    "recorded_at": "2026-06-22T14:16:31.111938+00:00",
+    "contact_name": "Asim Bhai",
+    "message_id": "msg_10",
+    "message_author": "MuhammadQasimShabbir",
+    "message_text": "theek hy bro, thanks you very much you are very good person kind one also",
+    "message_category": "positive",
+    "reply_text": "Kya sadam ne aapko paise diye?",
+    "engagement_priority": "high",
+    "sentiment_score": 0.9,
+    "status": "posted",
+    "posted": true,
+    "post_error": "",
+    "screenshot_path": "reports/screenshots/asim_bhai_20260622_191630.png"
+  }
+]
