@@ -3,6 +3,7 @@
 
 LANGGRAPH_PORT="${LANGGRAPH_PORT:-2024}"
 FRONTEND_PORT="${FRONTEND_PORT:-5173}"
+BROWSER_API_PORT="${BROWSER_API_PORT:-2025}"
 
 load_dotenv() {
     local env_file="${1:-.env}"
@@ -69,9 +70,16 @@ stop_frontend() {
     stop_port "${FRONTEND_PORT}"
 }
 
+stop_browser_api() {
+    pkill -f "agent.browser_api" 2>/dev/null || true
+    pkill -f "uvicorn.*browser_api" 2>/dev/null || true
+    stop_port "${BROWSER_API_PORT}"
+}
+
 stop_all_services() {
-    echo "Stopping services on ports ${LANGGRAPH_PORT} and ${FRONTEND_PORT}..."
+    echo "Stopping services on ports ${LANGGRAPH_PORT}, ${BROWSER_API_PORT}, and ${FRONTEND_PORT}..."
     stop_langgraph
+    stop_browser_api
     stop_frontend
     echo "Services stopped."
 }
@@ -93,4 +101,17 @@ wait_for_port() {
     done
 
     return 0
+}
+
+ensure_whatsapp_browser() {
+    local project_dir="${1:-.}"
+    local port="${BROWSER_DEBUG_PORT:-9222}"
+
+    if command -v curl &>/dev/null && curl -fsS "http://127.0.0.1:${port}/json/version" >/dev/null 2>&1; then
+        echo "WhatsApp browser already running on port ${port}."
+        return 0
+    fi
+
+    echo "Opening WhatsApp browser (./start.sh browser)..."
+    bash "${project_dir}/scripts/open_whatsapp_browser.sh"
 }

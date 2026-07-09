@@ -12,7 +12,7 @@ export const WORKFLOW_STEPS: WorkflowStep[] = [
     id: "login",
     nodes: ["login_whatsapp"],
     label: "🔐 WhatsApp login",
-    description: "Open Chrome profile at web.whatsapp.com (scan QR once, then reuse)",
+    description: "Verify WhatsApp Web session from saved profile",
     emoji: "🔐",
   },
   {
@@ -142,9 +142,9 @@ export function detailForNode(nodeName: string, payload: Record<string, unknown>
         return "✅ WhatsApp Web session active";
       }
       if (payload.logged_in === false || payload.whatsapp_logged_in === false) {
-        return "⏳ Scan QR in browser (first time only)";
+        return "⏳ Complete QR scan in Setup Your Profile";
       }
-      return "Opening WhatsApp Web in Chrome profile…";
+      return "Checking WhatsApp session…";
     }
     case "decide_agent":
       return payload.task_plan_summary ? String(payload.task_plan_summary) : "Route selected";

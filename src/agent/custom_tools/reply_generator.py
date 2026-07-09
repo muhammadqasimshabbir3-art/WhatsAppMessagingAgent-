@@ -22,15 +22,20 @@ def _format_conversation_context(message: dict[str, Any]) -> str:
     history = message.get("conversation_history") or []
     if not history:
         return ""
+    limit = max(1, int(get_whatsapp_config().get("max_messages_per_chat", 10)))
     lines: list[str] = []
-    for item in history[-12:]:
+    for item in history[-limit:]:
         speaker = "Me" if item.get("is_outgoing") else item.get("author", "Contact")
         text = str(item.get("text") or "").strip()
         if text:
             lines.append(f"{speaker}: {text}")
     if not lines:
         return ""
-    return "Recent conversation:\n" + "\n".join(lines) + "\n\n"
+    return (
+        f"Last {len(lines)} messages in this chat (use for reply context):\n"
+        + "\n".join(lines)
+        + "\n\n"
+    )
 
 
 def _user_prompt_for_message(message: dict[str, Any], contact_name: str) -> str:

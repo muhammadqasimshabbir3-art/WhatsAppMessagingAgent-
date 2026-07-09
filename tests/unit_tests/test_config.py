@@ -47,7 +47,7 @@ def test_inbox_scan_defaults(monkeypatch):
     get_whatsapp_config.cache_clear()
     config = get_whatsapp_config()
     assert config["max_chats_to_process"] == 5
-    assert config["max_messages_per_chat"] == 20
+    assert config["max_messages_per_chat"] == 10
     assert config["reply_only_unread_chats"] is True
 
 

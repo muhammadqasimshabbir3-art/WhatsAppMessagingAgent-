@@ -18,10 +18,14 @@ source "${SCRIPT_DIR}/scripts/services.sh"
 
 LANGGRAPH_PID=""
 FRONTEND_PID=""
+BROWSER_API_PID=""
 
 cleanup() {
     if [ -n "$LANGGRAPH_PID" ]; then
         kill "$LANGGRAPH_PID" 2>/dev/null || true
+    fi
+    if [ -n "$BROWSER_API_PID" ]; then
+        kill "$BROWSER_API_PID" 2>/dev/null || true
     fi
     if [ -n "$FRONTEND_PID" ]; then
         kill "$FRONTEND_PID" 2>/dev/null || true
@@ -74,37 +78,59 @@ ensure_frontend_deps() {
 run_ui() {
     stop_frontend
     ensure_frontend_deps
+    ensure_whatsapp_browser "$SCRIPT_DIR"
+
+    if ! curl -fsS "http://127.0.0.1:${BROWSER_API_PORT}/account" >/dev/null 2>&1; then
+        echo -e "${BLUE}Starting Browser API for embedded WhatsApp setup...${NC}"
+        uv run python -m agent.browser_api &
+        BROWSER_API_PID=$!
+        wait_for_port "${BROWSER_API_PORT}" 15
+    fi
+
     echo -e "${BLUE}Starting Agent Web UI (Vite)...${NC}"
     echo -e "${YELLOW}Open: http://localhost:${FRONTEND_PORT}${NC}"
     echo -e "${YELLOW}Tip: run ./start.sh both to start LangGraph + UI together${NC}"
     echo ""
-    trap - EXIT INT TERM
+    trap cleanup EXIT INT TERM
     (cd frontend && npm run dev -- --port "${FRONTEND_PORT}" --host 127.0.0.1)
 }
 
 run_server() {
     stop_langgraph
-    echo -e "${BLUE}Starting LangGraph Server...${NC}"
-    echo -e "${YELLOW}API:    http://127.0.0.1:${LANGGRAPH_PORT}${NC}"
-    echo -e "${YELLOW}Studio: https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:${LANGGRAPH_PORT}${NC}"
+    stop_browser_api
+    ensure_whatsapp_browser "$SCRIPT_DIR"
+    echo -e "${BLUE}Starting LangGraph Server + Browser API...${NC}"
+    echo -e "${YELLOW}API:         http://127.0.0.1:${LANGGRAPH_PORT}${NC}"
+    echo -e "${YELLOW}Browser API: http://127.0.0.1:${BROWSER_API_PORT}${NC}"
+    echo -e "${YELLOW}Studio:      https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:${LANGGRAPH_PORT}${NC}"
     echo ""
     trap - EXIT INT TERM
+    uv run python -m agent.browser_api &
+    BROWSER_API_PID=$!
     uv run langgraph dev --port "${LANGGRAPH_PORT}"
 }
 
 run_both() {
     stop_all_services
 
-    echo -e "${BLUE}Starting LangGraph Server + Agent Web UI...${NC}"
-    echo -e "${YELLOW}Studio: https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:${LANGGRAPH_PORT}${NC}"
-    echo -e "${YELLOW}UI:     http://localhost:${FRONTEND_PORT}${NC}"
+    echo -e "${BLUE}Starting LangGraph Server + Browser API + Agent Web UI...${NC}"
+    ensure_whatsapp_browser "$SCRIPT_DIR"
+    echo -e "${YELLOW}Studio:      https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:${LANGGRAPH_PORT}${NC}"
+    echo -e "${YELLOW}Browser API: http://127.0.0.1:${BROWSER_API_PORT}${NC}"
+    echo -e "${YELLOW}UI:          http://localhost:${FRONTEND_PORT}${NC}"
     echo ""
+
+    uv run python -m agent.browser_api &
+    BROWSER_API_PID=$!
 
     uv run langgraph dev --port "${LANGGRAPH_PORT}" &
     LANGGRAPH_PID=$!
 
     echo "Waiting for LangGraph server..."
     wait_for_port "${LANGGRAPH_PORT}" 20
+
+    echo "Waiting for Browser API..."
+    wait_for_port "${BROWSER_API_PORT}" 15
 
     ensure_frontend_deps
     trap cleanup EXIT INT TERM
@@ -147,7 +173,7 @@ show_help() {
     echo "  server          Start LangGraph Server + Studio"
     echo "  both            Start LangGraph Server + Agent Web UI"
     echo "  browser         Open reusable WhatsApp browser profile"
-    echo "  stop            Stop services on ports ${LANGGRAPH_PORT} and ${FRONTEND_PORT}"
+    echo "  stop            Stop services on ports ${LANGGRAPH_PORT}, ${BROWSER_API_PORT}, and ${FRONTEND_PORT}"
     echo "  restart [target] Restart ui, server, or both (default: both)"
     echo ""
     echo "Examples:"

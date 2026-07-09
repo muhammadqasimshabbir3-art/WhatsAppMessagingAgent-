@@ -300,19 +300,24 @@ def scrape_conversation(page: Page, contact_name: str) -> list[dict[str, Any]]:
     return messages
 
 
+def _trim_conversation_messages(
+    messages: list[dict[str, Any]],
+    limit: int,
+) -> list[dict[str, Any]]:
+    """Keep the last N messages from a chat for reply context."""
+    if limit <= 0 or len(messages) <= limit:
+        return list(messages)
+    return messages[-limit:]
+
+
 def _latest_inbound_needing_reply(
     messages: list[dict[str, Any]],
-    messages_per_chat: int,
 ) -> list[dict[str, Any]]:
-    """Return the latest inbound message(s) that need a reply."""
+    """Return only the latest inbound message to reply to (one reply per chat)."""
     inbound = [m for m in messages if not m.get("is_outgoing")]
     if not inbound:
         return []
-    if messages_per_chat <= 1:
-        return [inbound[-1]]
-    if messages_per_chat > 0:
-        inbound = inbound[-messages_per_chat:]
-    return inbound
+    return [inbound[-1]]
 
 
 def _resolve_whatsapp_page() -> tuple[Playwright | None, Browser | None, BrowserContext | None, Page, bool]:
@@ -349,8 +354,8 @@ def _fetch_named_contact_conversation(
     try:
         navigate_to_contact(page, contact_name)
         messages = scrape_conversation(page, contact_name)
-        if max_messages > 0:
-            messages = messages[-max_messages:]
+        context_limit = max(1, max_messages)
+        messages = _trim_conversation_messages(messages, context_limit)
         if not messages:
             greeting_msg = {
                 "message_id": f"initial_{_slugify(contact_name)}",
@@ -465,10 +470,10 @@ def fetch_read_conversations(
             try:
                 open_chat_from_list(page, chat)
                 messages = scrape_conversation(page, title)
-                inbound = _latest_inbound_needing_reply(
-                    messages, max(1, config["max_messages_per_chat"])
-                )
-                # Attach full conversation history for LLM context
+                context_limit = max(1, config["max_messages_per_chat"])
+                messages = _trim_conversation_messages(messages, context_limit)
+                inbound = _latest_inbound_needing_reply(messages)
+                # Attach recent thread for LLM reply context
                 for msg in inbound:
                     msg["conversation_history"] = messages
                 conversations.append(

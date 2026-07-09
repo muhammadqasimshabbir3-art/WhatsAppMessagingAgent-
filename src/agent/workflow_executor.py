@@ -87,14 +87,16 @@ def _build_pdf_stats(state: dict[str, Any]) -> dict[str, int]:
 
 
 def execute_whatsapp_login(state: dict[str, Any]) -> dict[str, Any]:
-    """Open WhatsApp Web after logging into Gmail to ensure active session."""
+    """Ensure WhatsApp Web session via persistent profile (reuses in-app setup when possible)."""
     from agent.custom_tools.browser_tools import (
         WHATSAPP_WEB_URL,
+        _is_logged_in,
         close_browser_session,
-        ensure_gmail_browser_session,
+        ensure_whatsapp_browser_session,
+        open_whatsapp_web,
         wait_for_whatsapp_login,
     )
-    from agent.custom_tools.whatsapp_tools import _store_browser_session
+    from agent.custom_tools.whatsapp_tools import _get_stored_page, _store_browser_session
 
     apply_runtime_overrides(state)
     config = get_whatsapp_config()
@@ -103,37 +105,48 @@ def execute_whatsapp_login(state: dict[str, Any]) -> dict[str, Any]:
     keep_session_alive = False
     profile = config.get("browser_profile_path", "./data/chrome_profile")
     try:
-        playwright, browser, context, page, gmail_ok = (
-            ensure_gmail_browser_session(open_whatsapp=True)
-        )
+        page = _get_stored_page()
         if page is not None:
-            _store_browser_session(playwright, browser, context, page)
+            playwright = None
+            browser = None
+            context = page.context
             keep_session_alive = True
-
-        if page is not None:
-            try:
-                whatsapp_logged_in = wait_for_whatsapp_login(page, block_for_qr=True)
-            except TimeoutError:
-                whatsapp_logged_in = False
+            whatsapp_logged_in = _is_logged_in(page)
+            if not whatsapp_logged_in:
+                open_whatsapp_web(page)
+                try:
+                    whatsapp_logged_in = wait_for_whatsapp_login(page, block_for_qr=True)
+                except TimeoutError:
+                    whatsapp_logged_in = _is_logged_in(page)
+        else:
+            playwright, browser, context, page, whatsapp_logged_in = (
+                ensure_whatsapp_browser_session()
+            )
+            if page is not None:
+                _store_browser_session(playwright, browser, context, page)
+                keep_session_alive = True
+            if page is not None and not whatsapp_logged_in:
+                try:
+                    whatsapp_logged_in = wait_for_whatsapp_login(page, block_for_qr=True)
+                except TimeoutError:
+                    whatsapp_logged_in = _is_logged_in(page)
 
         if whatsapp_logged_in:
-            detail = f"Google & WhatsApp Web ready — profile saved at {profile}"
+            detail = f"WhatsApp Web session active — profile saved at {profile}"
         else:
             detail = (
-                f"Opened {WHATSAPP_WEB_URL} in Chrome profile ({profile}). "
-                "Scan the QR code in the browser window (first time only)."
+                f"Waiting for WhatsApp login at {WHATSAPP_WEB_URL}. "
+                "Complete QR scan in Setup Your Profile (in-app browser)."
             )
         return {
-            "gmail_logged_in": gmail_ok,
             "logged_in": whatsapp_logged_in,
             "whatsapp_logged_in": whatsapp_logged_in,
             "login_detail": detail,
             "whatsapp_login_detail": detail,
-            **({"error": detail} if not keep_session_alive else {}),
+            **({"error": detail} if not whatsapp_logged_in else {}),
         }
     except Exception as exc:
         return {
-            "gmail_logged_in": False,
             "logged_in": False,
             "whatsapp_logged_in": False,
             "login_detail": str(exc),

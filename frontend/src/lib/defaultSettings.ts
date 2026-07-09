@@ -23,7 +23,7 @@ export function defaultRunSettings(): AgentRunSettings {
   return {
     contactFilter: envStr("VITE_DEFAULT_CONTACT_FILTER", ""),
     maxChatsToProcess: envInt("VITE_DEFAULT_MAX_CHATS_TO_PROCESS", 5),
-    maxMessagesPerChat: envInt("VITE_DEFAULT_MAX_MESSAGES_PER_CHAT", 20),
+    maxMessagesPerChat: envInt("VITE_DEFAULT_MAX_MESSAGES_PER_CHAT", 10),
     maxReplies: envInt("VITE_DEFAULT_MAX_REPLIES", 5),
     replyPersonality: envStr("VITE_DEFAULT_REPLY_PERSONALITY", "friendly"),
     enableMessageReplies: envBool("VITE_DEFAULT_ENABLE_MESSAGE_REPLIES", true),

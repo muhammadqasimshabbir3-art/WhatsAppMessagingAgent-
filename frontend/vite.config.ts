@@ -44,12 +44,20 @@ function mirrorBackendEnvDefaults(env: Record<string, string>) {
     env.VITE_LANGGRAPH_PORT = langgraphPort;
     process.env.VITE_LANGGRAPH_PORT = langgraphPort;
   }
+
+  const browserApiPort = env.BROWSER_API_PORT?.trim() || "2025";
+  if (!env.VITE_BROWSER_API_URL?.trim()) {
+    const browserApiUrl = `http://127.0.0.1:${browserApiPort}`;
+    env.VITE_BROWSER_API_URL = browserApiUrl;
+    process.env.VITE_BROWSER_API_URL = browserApiUrl;
+  }
 }
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, rootDir, "");
   mirrorBackendEnvDefaults(env);
   const langgraphPort = env.LANGGRAPH_PORT || "2024";
+  const browserApiPort = env.BROWSER_API_PORT || "2025";
   const frontendPort = Number(env.FRONTEND_PORT || "5173");
 
   return {
@@ -63,6 +71,11 @@ export default defineConfig(({ mode }) => {
           target: `http://127.0.0.1:${langgraphPort}`,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, ""),
+        },
+        "/browser-api": {
+          target: `http://127.0.0.1:${browserApiPort}`,
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/browser-api/, ""),
         },
       },
     },

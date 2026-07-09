@@ -57,3 +57,23 @@ export const UI_URL =
   import.meta.env.VITE_UI_URL?.trim() || "http://localhost:5173";
 
 export const GRAPH_RUN_CONFIG = { recursion_limit: 100 };
+
+function resolveBrowserApiUrl(): string {
+  const fromEnv = import.meta.env.VITE_BROWSER_API_URL?.trim();
+  if (fromEnv) {
+    try {
+      const parsed = new URL(fromEnv);
+      return `${parsed.origin}${parsed.pathname === "/" ? "" : parsed.pathname.replace(/\/$/, "")}`;
+    } catch {
+      return fromEnv.replace(/\/$/, "");
+    }
+  }
+
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return `${window.location.origin}/browser-api`;
+  }
+
+  return "http://127.0.0.1:2025";
+}
+
+export const BROWSER_API_URL = resolveBrowserApiUrl();

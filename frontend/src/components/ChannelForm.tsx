@@ -9,13 +9,11 @@ interface AgentConfigFormProps {
 
 function ToggleRow({
   label,
-  hint,
   checked,
   onChange,
   disabled,
 }: {
   label: string;
-  hint?: string;
   checked: boolean;
   onChange: (value: boolean) => void;
   disabled?: boolean;
@@ -28,10 +26,7 @@ function ToggleRow({
         onChange={(e) => onChange(e.target.checked)}
         disabled={disabled}
       />
-      <span>
-        <strong>{label}</strong>
-        {hint && <small>{hint}</small>}
-      </span>
+      <span>{label}</span>
     </label>
   );
 }
@@ -39,33 +34,26 @@ function ToggleRow({
 export function AgentConfigForm({ settings, onChange, disabled }: AgentConfigFormProps) {
   return (
     <section className="panel channel-form">
-      <div className="panel-title">
-        <span>💬 WhatsApp Inbox Agent</span>
+      <div className="panel-heading">
+        <div>
+          <h2>Inbox settings</h2>
+          <p className="panel-subtitle">Configure scan limits and reply behavior.</p>
+        </div>
       </div>
-      <p className="panel-desc">
-        Playwright opens a <strong>persistent Chrome profile</strong> at{" "}
-        <code>./data/chrome_profile</code> and navigates to{" "}
-        <code>https://web.whatsapp.com/</code>. Scan the QR code once — later runs stay
-        logged in. Email reports use Gmail SMTP separately (
-        <code>GMAIL_SMTP_USER</code> / <code>GMAIL_APP_PASSWORD</code>).
-        <strong>unread</strong> chats, extracts conversations, generates contextual replies,
-        sends them, captures screenshots, and emails an HTML report.
-      </p>
 
-      <h3 className="form-section-title">Inbox scan</h3>
       <div className="form-grid">
         <label>
-          <span>Contact filter (optional)</span>
+          <span>Contact filter</span>
           <input
             type="text"
             value={settings.contactFilter}
             onChange={(e) => onChange("contactFilter", e.target.value)}
-            placeholder="e.g. John Smith — leave empty for all unread chats"
+            placeholder="Optional — leave empty for all unread"
             disabled={disabled}
           />
         </label>
         <label>
-          <span>Max chats to process</span>
+          <span>Max chats</span>
           <input
             type="number"
             min={1}
@@ -78,11 +66,11 @@ export function AgentConfigForm({ settings, onChange, disabled }: AgentConfigFor
           />
         </label>
         <label>
-          <span>Max messages per chat</span>
+          <span>Context messages per chat</span>
           <input
             type="number"
             min={1}
-            max={100}
+            max={50}
             value={settings.maxMessagesPerChat}
             onChange={(e) =>
               onChange("maxMessagesPerChat", Math.max(1, Number(e.target.value) || 1))
@@ -91,7 +79,7 @@ export function AgentConfigForm({ settings, onChange, disabled }: AgentConfigFor
           />
         </label>
         <label>
-          <span>Max replies per run</span>
+          <span>Max replies</span>
           <input
             type="number"
             min={1}
@@ -102,7 +90,7 @@ export function AgentConfigForm({ settings, onChange, disabled }: AgentConfigFor
           />
         </label>
         <label>
-          <span>Reply personality</span>
+          <span>Reply tone</span>
           <select
             value={settings.replyPersonality}
             onChange={(e) => onChange("replyPersonality", e.target.value)}
@@ -115,45 +103,8 @@ export function AgentConfigForm({ settings, onChange, disabled }: AgentConfigFor
             ))}
           </select>
         </label>
-      </div>
-
-      <div className="toggle-grid">
-        <ToggleRow
-          label="Only unread chats"
-          hint="Reply only to contacts with unread messages (REPLY_ONLY_UNREAD_CHATS)"
-          checked={settings.replyOnlyUnreadChats}
-          onChange={(v) => onChange("replyOnlyUnreadChats", v)}
-          disabled={disabled}
-        />
-        <ToggleRow
-          label="Enable message replies"
-          hint="Send AI replies on WhatsApp Web (ENABLE_MESSAGE_REPLIES)"
-          checked={settings.enableMessageReplies}
-          onChange={(v) => onChange("enableMessageReplies", v)}
-          disabled={disabled}
-        />
-        <ToggleRow
-          label="Keep browser open"
-          hint="Reuse browser through scan, send, and screenshots"
-          checked={settings.keepBrowserOpen}
-          onChange={(v) => onChange("keepBrowserOpen", v)}
-          disabled={disabled}
-        />
-      </div>
-
-      <h3 className="form-section-title">Email report</h3>
-      <div className="toggle-grid">
-        <ToggleRow
-          label="Email HTML report"
-          hint="Send inbox reply log via Gmail SMTP"
-          checked={settings.emailReports}
-          onChange={(v) => onChange("emailReports", v)}
-          disabled={disabled}
-        />
-      </div>
-      <div className="form-grid">
         <label>
-          <span>Email recipient</span>
+          <span>Report recipient</span>
           <input
             type="email"
             value={settings.emailRecipient}
@@ -163,6 +114,27 @@ export function AgentConfigForm({ settings, onChange, disabled }: AgentConfigFor
           />
         </label>
       </div>
+
+      <div className="toggle-grid compact">
+        <ToggleRow
+          label="Unread chats only"
+          checked={settings.replyOnlyUnreadChats}
+          onChange={(v) => onChange("replyOnlyUnreadChats", v)}
+          disabled={disabled}
+        />
+        <ToggleRow
+          label="Send AI replies"
+          checked={settings.enableMessageReplies}
+          onChange={(v) => onChange("enableMessageReplies", v)}
+          disabled={disabled}
+        />
+        <ToggleRow
+          label="Email HTML report"
+          checked={settings.emailReports}
+          onChange={(v) => onChange("emailReports", v)}
+          disabled={disabled}
+        />
+      </div>
     </section>
   );
 }
@@ -170,40 +142,45 @@ export function AgentConfigForm({ settings, onChange, disabled }: AgentConfigFor
 interface RunControlsProps {
   running: boolean;
   serverOnline: boolean;
+  whatsappReady: boolean;
   onStart: () => void;
   onStop: () => void;
 }
 
-export function RunControls({ running, serverOnline, onStart, onStop }: RunControlsProps) {
+export function RunControls({
+  running,
+  serverOnline,
+  whatsappReady,
+  onStart,
+  onStop,
+}: RunControlsProps) {
+  const canStart = serverOnline && whatsappReady;
+
   return (
     <section className="panel run-controls">
-      <div className="panel-title">
-        <span>🤖 Run Agent</span>
-      </div>
-      <div className="button-row">
+      <div className="run-controls-row">
         {!running ? (
           <button
             type="button"
             className="btn primary start-btn"
-            disabled={!serverOnline}
+            disabled={!canStart}
             onClick={onStart}
           >
-            ▶️ Start Agent
+            Start agent
           </button>
         ) : (
           <button type="button" className="btn danger stop-btn" onClick={onStop}>
-            ⏹️ Stop Agent
+            Stop agent
           </button>
         )}
+        {!serverOnline && (
+          <p className="hint warn inline-hint">LangGraph server offline — run ./start.sh both</p>
+        )}
+        {serverOnline && !whatsappReady && (
+          <p className="hint warn inline-hint">Connect WhatsApp in Setup Your Profile first</p>
+        )}
+        {running && <p className="hint running-hint inline-hint">Processing inbox…</p>}
       </div>
-      {!serverOnline && (
-        <p className="hint warn">
-          Start the LangGraph server first: <code>./start.sh both</code>
-        </p>
-      )}
-      {running && (
-        <p className="hint running-hint">🔄 Scanning inbox and processing read conversations…</p>
-      )}
     </section>
   );
 }

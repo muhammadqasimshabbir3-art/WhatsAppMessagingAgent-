@@ -9,8 +9,14 @@ primary_region = "iad"
 [env]
   PORT = "8000"
   BROWSER_HEADLESS = "true"
+  BROWSER_PROFILE_PATH = "/data/chrome_profile"
+  KEEP_BROWSER_OPEN = "true"
   # Comma-separated origins — override in fly secrets for production URL
   # CORS_ALLOW_ORIGINS = "http://localhost:5173,https://your-app.vercel.app"
+
+[mounts]
+  source = "whatsapp_profile"
+  destination = "/data"
 
 [http_service]
   internal_port = 8000

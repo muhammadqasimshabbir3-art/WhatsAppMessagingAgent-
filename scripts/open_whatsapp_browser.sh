@@ -70,4 +70,4 @@ nohup "$CHROME_BIN" \
     --disable-blink-features=AutomationControlled \
     "${WHATSAPP_URL}" >/tmp/whatsapp-agent-browser.log 2>&1 &
 
-echo "Browser started. Scan WhatsApp QR once, then leave this browser open."
+echo "Browser started. Scan WhatsApp QR once in this window — later runs reuse the saved profile."

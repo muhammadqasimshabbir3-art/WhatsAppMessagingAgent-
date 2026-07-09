@@ -104,7 +104,7 @@ def get_whatsapp_config() -> dict:
         "reply_to_suggestions": _env_bool("REPLY_TO_SUGGESTIONS", True),
         "reply_to_spam": _env_bool("REPLY_TO_SPAM", False),
         "max_chats_to_process": int(os.getenv("MAX_CHATS_TO_PROCESS", "5")),
-        "max_messages_per_chat": int(os.getenv("MAX_MESSAGES_PER_CHAT", "20")),
+        "max_messages_per_chat": int(os.getenv("MAX_MESSAGES_PER_CHAT", "10")),
         "max_replies_per_run": int(os.getenv("MAX_REPLIES_PER_RUN", "5")),
         "reply_personality": os.getenv("REPLY_PERSONALITY", "friendly").strip().lower(),
         "browser_profile_path": os.getenv(
