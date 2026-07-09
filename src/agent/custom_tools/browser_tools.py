@@ -362,15 +362,39 @@ def _chromium_launch_args() -> list[str]:
     ]
 
 
+def _select_browser_page(
+    context: BrowserContext,
+    *,
+    preferred_url: str = "",
+    open_new_if_missing: bool = False,
+) -> Page:
+    """Pick an existing tab by URL, or open a new tab in the same browser context."""
+    pages = list(context.pages)
+    if preferred_url:
+        for page in pages:
+            if preferred_url in page.url:
+                return page
+        if open_new_if_missing:
+            return context.new_page()
+    return pages[0] if pages else context.new_page()
+
+
 def try_connect_browser(
     playwright: Playwright,
+    *,
+    preferred_url: str = "",
+    open_new_if_missing: bool = False,
 ) -> tuple[Browser | None, BrowserContext | None, Page | None]:
     """Reconnect to an already-running Chromium window (same browser across graph steps)."""
     port = _browser_debug_port()
     try:
         browser = playwright.chromium.connect_over_cdp(f"http://127.0.0.1:{port}")
         context = browser.contexts[0] if browser.contexts else browser.new_context()
-        page = context.pages[0] if context.pages else context.new_page()
+        page = _select_browser_page(
+            context,
+            preferred_url=preferred_url,
+            open_new_if_missing=open_new_if_missing,
+        )
         return browser, context, page
     except Exception:
         return None, None, None
@@ -565,7 +589,11 @@ def launch_persistent_browser(
     profile_path.mkdir(parents=True, exist_ok=True)
 
     playwright = sync_playwright().start()
-    browser, context, page = try_connect_browser(playwright)
+    browser, context, page = try_connect_browser(
+        playwright,
+        preferred_url=WHATSAPP_WEB_URL,
+        open_new_if_missing=True,
+    )
     if page is not None:
         return playwright, browser, context, page
 

@@ -325,13 +325,9 @@ def _resolve_whatsapp_page() -> tuple[Playwright | None, Browser | None, Browser
             whatsapp_ok = False
         return None, None, None, page, whatsapp_ok
 
-    from agent.custom_tools.browser_tools import ensure_gmail_browser_session
-    playwright, browser, context, page, gmail_ok = ensure_gmail_browser_session(open_whatsapp=True)
+    from agent.custom_tools.browser_tools import ensure_whatsapp_browser_session
 
-    try:
-        whatsapp_ok = wait_for_whatsapp_login(page, block_for_qr=True)
-    except TimeoutError:
-        whatsapp_ok = False
+    playwright, browser, context, page, whatsapp_ok = ensure_whatsapp_browser_session()
     _store_browser_session(playwright, browser, context, page)
     return playwright, browser, context, page, whatsapp_ok
 
@@ -345,14 +341,37 @@ def _fetch_named_contact_conversation(
 
     Returns a conversation dict with ``is_greeting=True`` attached to each
     message so downstream generators know to write an opener rather than a
-    plain reply-to-unread. Returns None if navigation fails or if the last
-    message is outgoing.
+    plain reply-to-unread. If the chat has no visible messages yet, a
+    synthetic opener anchor is created so the agent can send the first
+    WhatsApp message to the configured contact. Returns None if navigation
+    fails or if the last message is outgoing.
     """
     try:
         navigate_to_contact(page, contact_name)
         messages = scrape_conversation(page, contact_name)
+        if max_messages > 0:
+            messages = messages[-max_messages:]
         if not messages:
-            return None
+            greeting_msg = {
+                "message_id": f"initial_{_slugify(contact_name)}",
+                "contact_name": contact_name,
+                "author": contact_name,
+                "text": "Start a new WhatsApp conversation.",
+                "timestamp": "",
+                "is_outgoing": False,
+                "agent_replied": False,
+                "posted": False,
+                "conversation_history": [],
+                "is_greeting": True,
+                "is_initial_message": True,
+            }
+            return {
+                "contact_name": contact_name,
+                "is_unread": False,
+                "is_greeting": True,
+                "messages": [],
+                "inbound_messages": [greeting_msg],
+            }
 
         # Check if the last message in the chat is outgoing.
         # If so, we have already replied, so we do not send a greeting.
@@ -368,6 +387,7 @@ def _fetch_named_contact_conversation(
             "contact_name": contact_name,
             "conversation_history": messages,
             "is_greeting": True,
+            "is_initial_message": False,
             "agent_replied": False,
             "posted": False,
         }
@@ -425,19 +445,22 @@ def fetch_read_conversations(
                     flat_messages.append(msg)
                 greeting_injected = True
 
-        # ── Step 2: Scan inbox for unread chats (all contacts) ──
+        # ── Step 2: Scan inbox for eligible chats (all contacts) ──
         all_chats = scan_chat_list(page)
-        unread_chats = filter_inbox_chats(
+        only_unread = bool(config.get("reply_only_unread_chats", True))
+        eligible_chats = filter_inbox_chats(
             all_chats,
-            only_unread=True,           # always only unread for the inbox sweep
-            contact_filter="",          # no filter — we want ALL unread chats
+            only_unread=only_unread,
+            contact_filter="",
             limit=config["max_chats_to_process"],
         )
 
-        for chat in unread_chats:
+        for chat in eligible_chats:
             title = str(chat.get("title") or "Contact")
-            # Skip if this chat IS the named contact (already handled above)
-            if greeting_injected and active_filter.lower() in title.lower():
+            # Skip if this chat IS the named contact (already handled above).
+            # If direct-contact mode produced no target because our last
+            # message is already outgoing, avoid re-processing it as a read chat.
+            if active_filter and active_filter.lower() in title.lower():
                 continue
             try:
                 open_chat_from_list(page, chat)
@@ -473,13 +496,15 @@ def fetch_read_conversations(
         if config["keep_browser_open"] and owns_session and playwright and browser and context:
             _store_browser_session(playwright, browser, context, page)
 
-        unread_found = len(unread_chats)
+        unread_found = sum(1 for chat in all_chats if chat.get("is_unread"))
+        read_found = sum(1 for chat in all_chats if not chat.get("is_unread"))
         return {
             "success": True,
             "whatsapp_logged_in": True,
             "chats_scanned": len(all_chats),
             "unread_chats_found": unread_found,
-            "read_chats_found": unread_found,
+            "read_chats_found": read_found,
+            "eligible_chats_found": len(eligible_chats),
             "greeting_injected": greeting_injected,
             "greeting_contact": active_filter if greeting_injected else "",
             "conversations": conversations,

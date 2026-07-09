@@ -118,6 +118,11 @@ run_stop() {
     stop_all_services
 }
 
+run_browser() {
+    trap - EXIT INT TERM
+    "${SCRIPT_DIR}/scripts/open_whatsapp_browser.sh"
+}
+
 run_restart() {
     local target="${1:-both}"
     run_stop
@@ -141,12 +146,14 @@ show_help() {
     echo "  ui              Start Agent Web UI (default, requires LangGraph for runs)"
     echo "  server          Start LangGraph Server + Studio"
     echo "  both            Start LangGraph Server + Agent Web UI"
+    echo "  browser         Open reusable WhatsApp browser profile"
     echo "  stop            Stop services on ports ${LANGGRAPH_PORT} and ${FRONTEND_PORT}"
     echo "  restart [target] Restart ui, server, or both (default: both)"
     echo ""
     echo "Examples:"
     echo "  ./start.sh"
     echo "  ./start.sh both"
+    echo "  ./start.sh browser"
     echo "  ./start.sh server"
     echo "  ./start.sh stop"
     echo ""
@@ -166,6 +173,9 @@ case "$MODE" in
         ;;
     both)
         run_both
+        ;;
+    browser)
+        run_browser
         ;;
     stop)
         run_stop

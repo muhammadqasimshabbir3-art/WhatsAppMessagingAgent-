@@ -10,6 +10,7 @@ The agent uses a **persistent Chrome profile** (`BROWSER_PROFILE_PATH`) so Whats
 ./setup.sh
 cp .env.example .env
 # Edit .env: GROQ_API_KEY, BROWSER_PROFILE_PATH, optional Gmail SMTP for email reports
+./start.sh browser
 ./start.sh both
 ```
 
@@ -23,9 +24,19 @@ Set in `.env`:
 BROWSER_PROFILE_PATH=./data/chrome_profile
 BROWSER_CHANNEL=chrome
 BROWSER_HEADLESS=false
+KEEP_BROWSER_OPEN=true
+BROWSER_DEBUG_PORT=9222
 ```
 
-Run the agent once. Chrome opens at [web.whatsapp.com](https://web.whatsapp.com/) — scan the QR code **once**. The profile is saved in `./data/chrome_profile` and reused on every run (no repeated QR).
+Open the reusable browser first:
+
+```bash
+./start.sh browser
+```
+
+Chrome opens at [web.whatsapp.com](https://web.whatsapp.com/) using `./data/chrome_profile` and remote debugging port `9222`. Scan the QR code **once**, then leave that browser window open. Later agent runs attach to that same browser/profile, reuse the open WhatsApp Web session, and send replies there.
+
+If you opened normal Chrome manually, the agent cannot attach to it unless Chrome was started with `--remote-debugging-port=9222` and the same `--user-data-dir`. Use `./start.sh browser` for the reliable reusable window.
 
 ## Workflow
 
@@ -44,14 +55,13 @@ Chrome profile → WhatsApp Web → Unread chats only → Extract conversations
 | `BROWSER_CHANNEL` | — | Set `chrome` to use installed Google Chrome |
 | `BROWSER_HEADLESS` | `true` | Set `false` for first QR scan |
 | `KEEP_BROWSER_OPEN` | `true` | Reuse browser through scan and send |
+| `BROWSER_DEBUG_PORT` | `9222` | Remote debugging port used to attach to the already-open reusable browser |
 | `MAX_CHATS_TO_PROCESS` | `5` | Max unread chats to open per run |
 | `MAX_MESSAGES_PER_CHAT` | `20` | Recent inbound messages per chat |
 | `MAX_REPLIES_PER_RUN` | `5` | Max AI replies per run |
 | `REPLY_ONLY_UNREAD_CHATS` | `true` | Reply only to chats with unread messages |
 | `CONTACT_FILTER` | — | Optional name filter (partial match) |
 | `ENABLE_MESSAGE_REPLIES` | `false` | Send replies via WhatsApp Web |
-| `BROWSER_HEADLESS` | `true` | Set `false` for QR login |
-| `KEEP_BROWSER_OPEN` | `true` | Reuse browser from login through send |
 
 See `.env.example` for the full list.
 
@@ -72,6 +82,7 @@ frontend/               # React agent dashboard
 
 | Command | Description |
 |---------|-------------|
+| `./start.sh browser` | Open the reusable WhatsApp Chrome profile the agent can attach to |
 | `./start.sh both` | LangGraph server + React UI |
 | `./start.sh server` | LangGraph API only |
 | `./start.sh ui` | Frontend only |

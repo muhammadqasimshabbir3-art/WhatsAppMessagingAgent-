@@ -1,0 +1,31 @@
+{
+   "action": {
+      "default_icon": "assets/icon.png",
+      "default_popup": "dist/popup/index.html"
+   },
+   "background": {
+      "service_worker": "./dist/background/index.mjs"
+   },
+   "content_scripts": [ {
+      "js": [ "dist/contentScripts/index.global.js" ],
+      "matches": [ "https://turbovpn.com/*" ],
+      "run_at": "document_start"
+   } ],
+   "content_security_policy": {
+      "extension_pages": "script-src 'self'; object-src 'self'"
+   },
+   "default_locale": "en_US",
+   "description": "__MSG_appDesc__",
+   "host_permissions": [ "*://*/*" ],
+   "icons": {
+      "128": "assets/icon.png",
+      "16": "assets/icon.png",
+      "48": "assets/icon.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAjm8SXjTZYvKEPBR1ebEfVF0lktP9viuKtqbJe1RQF6e3ZsHgjNrvY7MZ3wvh5J1IcWdEGPy9Iq8kBB2RP/euepEcwA/zd4GqTvBtpJimff9AkDPoouS5UZJ1W1j+6Jg7HZJb7WwaVZRn5F0dU2ydP8hBqWHt3K6JYvZQoAnKcp/9UJgVkmGYyyCyLXjslnFIfevd6GfMoBuNI8TwiGWCg75Tjwg+KVoL7VDqb2rU/ahmynRQY8w7ARuXGOlMpSjkvUWqVtYoZERoEFLTZD7mX1SvCLSyoO6Nt0qtd7MpVLXdDoX+VpIAwrPWIrBtYgtqy360WEEoKuJsTmC564X7owIDAQAB",
+   "manifest_version": 3,
+   "name": "__MSG_appName__",
+   "permissions": [ "storage", "activeTab", "proxy", "storage", "webRequest", "webRequestAuthProvider" ],
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "2.0.4"
+}

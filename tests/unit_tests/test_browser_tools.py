@@ -62,3 +62,45 @@ def test_gmail_logged_in_when_inbox_visible():
     page = _FakePage("https://mail.google.com/mail/u/0/#inbox", inbox_visible=True)
     assert browser_tools._is_google_sign_in_page(page) is False
     assert browser_tools._is_gmail_logged_in(page) is True
+
+
+class _FakeContext:
+    def __init__(self, pages):
+        self.pages = list(pages)
+        self.created_pages = 0
+
+    def new_page(self):
+        self.created_pages += 1
+        page = _FakePage("about:blank")
+        self.pages.append(page)
+        return page
+
+
+def test_select_browser_page_prefers_existing_whatsapp_tab():
+    gmail_page = _FakePage("https://mail.google.com/mail/u/0/#inbox")
+    whatsapp_page = _FakePage(browser_tools.WHATSAPP_WEB_URL)
+    context = _FakeContext([gmail_page, whatsapp_page])
+
+    page = browser_tools._select_browser_page(
+        context,
+        preferred_url=browser_tools.WHATSAPP_WEB_URL,
+        open_new_if_missing=True,
+    )
+
+    assert page is whatsapp_page
+    assert context.created_pages == 0
+
+
+def test_select_browser_page_opens_new_tab_for_missing_whatsapp():
+    gmail_page = _FakePage("https://mail.google.com/mail/u/0/#inbox")
+    context = _FakeContext([gmail_page])
+
+    page = browser_tools._select_browser_page(
+        context,
+        preferred_url=browser_tools.WHATSAPP_WEB_URL,
+        open_new_if_missing=True,
+    )
+
+    assert page is not gmail_page
+    assert page.url == "about:blank"
+    assert context.created_pages == 1
