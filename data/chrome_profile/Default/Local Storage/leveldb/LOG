@@ -1,6 +1,0 @@
-2026/07/09-15:13:28.046 5 Reusing MANIFEST /home/engmatix/qasim_ai/WhatsAppMessagingAgent-/data/chrome_profile/Default/Local Storage/leveldb/MANIFEST-000001
-2026/07/09-15:13:28.051 5 Recovering log #3
-2026/07/09-15:13:28.051 5 Reusing old log /home/engmatix/qasim_ai/WhatsAppMessagingAgent-/data/chrome_profile/Default/Local Storage/leveldb/000003.log 
-2026/07/09-15:15:23.030 5 Level-0 table #5: started
-2026/07/09-15:15:23.037 5 Level-0 table #5: 18285 bytes OK
-2026/07/09-15:15:23.042 5 Delete type=0 #3
