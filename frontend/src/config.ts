@@ -5,7 +5,7 @@
  *   VITE_LANGGRAPH_API_URL=http://127.0.0.1:2024
  *
  * Vercel production — set in Project → Environment Variables:
- *   VITE_LANGGRAPH_API_URL=https://<your-fly-app>.fly.dev
+ *   VITE_LANGGRAPH_API_URL=https://<your-northflank-service-public-url>
  */
 
 function readApiUrl(): string {

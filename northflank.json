@@ -1,0 +1,117 @@
+{
+  "apiVersion": "v1.2",
+  "description": "WhatsApp Messaging Agent — LangGraph + Playwright backend for the existing whatsappmessagingagent project. Set GROQ_API_KEY as a template argument override before running.",
+  "arguments": {
+    "GROQ_API_KEY": "",
+    "SERVICE_PLAN": "nf-compute-100",
+    "GIT_REPO": "https://github.com/muhammadqasimshabbir3-art/WhatsAppMessagingAgent-.git",
+    "GIT_BRANCH": "main",
+    "PROJECT_ID": "whatsappmessagingagent"
+  },
+  "spec": {
+    "kind": "Workflow",
+    "spec": {
+      "type": "sequential",
+      "context": {
+        "projectId": "${args.PROJECT_ID}"
+      },
+      "steps": [
+        {
+          "kind": "CombinedService",
+          "ref": "agent",
+          "spec": {
+            "name": "whatsapp-agent-api",
+            "vcsData": {
+              "projectType": "github",
+              "projectUrl": "${args.GIT_REPO}",
+              "projectBranch": "${args.GIT_BRANCH}"
+            },
+            "buildSettings": {
+              "dockerfile": {
+                "buildEngine": "kaniko",
+                "useCache": true,
+                "dockerWorkDir": "/",
+                "dockerFilePath": "/Dockerfile"
+              }
+            },
+            "ports": [
+              {
+                "name": "api",
+                "internalPort": 8000,
+                "protocol": "HTTP",
+                "public": true,
+                "domains": [],
+                "security": {
+                  "policies": [],
+                  "credentials": []
+                },
+                "disableNfDomain": false
+              }
+            ],
+            "deployment": {
+              "instances": 1,
+              "storage": {
+                "ephemeralStorage": {
+                  "storageSize": 2048
+                },
+                "shmSize": 256
+              },
+              "docker": {
+                "configType": "default"
+              }
+            },
+            "runtimeEnvironment": {
+              "PORT": "8000",
+              "BROWSER_HEADLESS": "true",
+              "BROWSER_PROFILE_PATH": "/data/chrome_profile",
+              "KEEP_BROWSER_OPEN": "true",
+              "ENABLE_MESSAGE_REPLIES": "false",
+              "MAX_CHATS_TO_PROCESS": "5",
+              "MAX_MESSAGES_PER_CHAT": "10",
+              "MAX_REPLIES_PER_RUN": "5",
+              "REPLY_ONLY_UNREAD_CHATS": "true",
+              "EMAIL_REPORTS": "false",
+              "GROQ_API_KEY": "${args.GROQ_API_KEY}"
+            },
+            "runtimeFiles": {},
+            "buildArguments": {},
+            "buildFiles": {},
+            "billing": {
+              "deploymentPlan": "${args.SERVICE_PLAN}",
+              "buildPlan": "nf-compute-400-16"
+            },
+            "disabledCI": false,
+            "buildConfiguration": {
+              "pathIgnoreRules": ["frontend/**", "*.md", "data/**"],
+              "isAllowList": false,
+              "ciIgnoreFlagsEnabled": false
+            }
+          }
+        },
+        {
+          "kind": "Volume",
+          "ref": "profile",
+          "spec": {
+            "name": "whatsapp-chrome-profile",
+            "mounts": [
+              {
+                "containerMountPath": "/data",
+                "volumeMountPath": ""
+              }
+            ],
+            "spec": {
+              "accessMode": "ReadWriteOnce",
+              "storageSize": 2048
+            },
+            "attachedObjects": [
+              {
+                "id": "${refs.agent.id}",
+                "type": "service"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,17 @@
+.git
+.env
+.env.*
+!.env.example
+data/chrome_profile
+data/whatsapp_session.json
+data/reply_history.json
+reports
+frontend/node_modules
+frontend/dist
+**/__pycache__
+**/*.pyc
+.venv
+.python-version
+*.md
+!README.md
+AgentWorkflow.md

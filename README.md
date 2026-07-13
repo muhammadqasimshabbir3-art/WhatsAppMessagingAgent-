@@ -87,32 +87,96 @@ frontend/               # React agent dashboard
 | `./start.sh server` | LangGraph API only |
 | `./start.sh ui` | Frontend only |
 
-## Production (Vercel UI + Fly.io backend)
+## Production (Vercel UI + Northflank backend)
 
-**Yes, the agent works in production** — you do not need a browser embedded in the UI.
+**Yes, the agent works in production** — you do not need a browser embedded in the UI. This repo uses **Northflank** for the backend (no credit card required on the free Developer Sandbox) and **Vercel** for the dashboard.
 
 | Layer | Role | Browser needed? |
 |-------|------|-----------------|
 | **Vercel** | Hosts the React dashboard only | No |
-| **Fly.io** | Runs LangGraph + Playwright (headless) | Yes — uses saved Chrome profile |
+| **Northflank** | Runs LangGraph + Playwright (headless) | Yes — uses saved Chrome profile on a volume |
 
-### One-time WhatsApp login (any of these)
+Your Northflank project: [whatsappmessagingagent](https://app.northflank.com/t/muhammadqasimshabbir3s-team/project/whatsappmessagingagent)
 
-1. **Local (simplest):** run `./start.sh browser`, scan QR once, then copy `./data/chrome_profile` to the Fly volume at `/data/chrome_profile`.
-2. **On the server:** `fly ssh console`, then run the same browser launcher once if the machine has Chrome/display access.
+### 1. Deploy the backend on Northflank
 
-After that, set `BROWSER_HEADLESS=true` on Fly. Every agent run reuses the profile — no QR scan, no visible window, no UI browser.
+**Option A — UI (recommended first time)**
 
-The **“Open WhatsApp browser”** button in the UI only works when the Browser API runs on your **local machine** (via `./start.sh both`). In production on Vercel, users trigger the agent; WhatsApp auth is already on the backend from the one-time setup above.
+Open [whatsappmessagingagent](https://app.northflank.com/t/muhammadqasimshabbir3s-team/project/whatsappmessagingagent) → **Create service** → **Combined**, then fill:
+
+| Field | Value |
+|-------|--------|
+| Name | `whatsapp-agent-api` |
+| Repository | `muhammadqasimshabbir3-art/WhatsAppMessagingAgent-` |
+| Branch | `main` |
+| Build type | **Dockerfile** |
+| Dockerfile path | `/Dockerfile` |
+| Build context | `/` |
+| Port | **8000**, protocol **HTTP**, **public** |
+| Volume | name `whatsapp-chrome-profile`, mount **`/data`**, ~2 GB, ReadWriteOnce |
+| Shared memory (`shm`) | **256 MB** or higher if the UI allows |
+| Compute | highest RAM on free tier (Chromium often needs ≥1 GB) |
+
+**Runtime env / secrets** (from `northflank.env.example`):
+
+```env
+GROQ_API_KEY=your_key
+PORT=8000
+BROWSER_HEADLESS=true
+BROWSER_PROFILE_PATH=/data/chrome_profile
+KEEP_BROWSER_OPEN=true
+ENABLE_MESSAGE_REPLIES=false
+```
+
+Create the service → wait for build → copy the public HTTPS URL from **Ports & DNS**.
+
+**Option B — Template**
+
+Repo file [`northflank.json`](./northflank.json) defines the same Combined service + volume. In Northflank: **Templates** → create/import → point GitOps at `/northflank.json` → set argument override `GROQ_API_KEY` → **Run**.
+
+Docs: [Build and deploy](https://northflank.com/docs/v1/application/getting-started/build-and-deploy-your-code), [Volumes](https://northflank.com/docs/v1/application/databases-and-persistence/add-a-volume), [Templates](https://northflank.com/docs/v1/application/infrastructure-as-code/write-a-template).
+
+### 2. One-time WhatsApp login (local → upload profile)
+
+1. Locally: set `BROWSER_HEADLESS=false`, run `./start.sh browser`, scan the QR once.
+2. Upload `./data/chrome_profile` onto the Northflank volume at `/data/chrome_profile`.
+
+Easiest upload (after [Northflank CLI](https://northflank.com/docs/v1/api/copy-files) login):
 
 ```bash
-# Create persistent volume (once)
-fly volumes create whatsapp_profile --region iad --size 1
-
-# After local QR scan, upload profile (example)
-fly ssh sftp shell
-# put -r ./data/chrome_profile /data/chrome_profile
+# Replace project/service ids with yours from the Northflank dashboard
+northflank upload service file \
+  --projectId whatsappmessagingagent \
+  --service <your-backend-service-name> \
+  --localPath ./data/chrome_profile \
+  --remotePath /data/chrome_profile
 ```
+
+Or use the service **Shell** / SSH proxy and `scp`/`rsync` — see [transfer data](https://northflank.com/docs/v1/application/run/transfer-data-to-and-from-containers) and [SSH access](https://northflank.com/docs/v1/application/run/access-services-with-ssh).
+
+After the profile is on the volume, keep `BROWSER_HEADLESS=true`. Agent runs reuse the session — no QR in the UI.
+
+### 3. Deploy the frontend on Vercel
+
+1. Import the `frontend/` folder (or monorepo root with Root Directory = `frontend`).
+2. Set environment variables (see `frontend/.env.example`):
+
+```env
+VITE_LANGGRAPH_API_URL=https://<your-northflank-public-url>
+VITE_LANGGRAPH_ASSISTANT_ID=agent
+VITE_UI_URL=https://<your-vercel-app>.vercel.app
+```
+
+3. Deploy. Open the Vercel URL and click **Start Agent**.
+
+The **“Open WhatsApp browser”** button only works with the local Browser API (`./start.sh both`). On Vercel, auth comes from the Northflank Chrome profile you uploaded once.
+
+### Free-tier notes
+
+- Northflank [Developer Sandbox](https://northflank.com/pricing) can run without a card; compute is limited.
+- If the service crashes or Playwright OOMs, try a larger compute plan or demo locally with `./start.sh both`.
+- Volume storage / egress may still have usage costs outside pure free allowances — check Northflank billing for your plan.
+- WhatsApp Web sessions can expire; re-scan QR locally and re-upload the profile when that happens.
 
 ## License
 
